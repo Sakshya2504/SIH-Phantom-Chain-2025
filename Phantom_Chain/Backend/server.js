@@ -52,7 +52,25 @@ app.post('/api/signup', async(req,res)=>{
         }
         res.status(500).json({ message: 'Something went wrong' });
     }
+})
 
+//login Route
+app.post('/api/login', async(req,res)=>{
+    const {email, password} = req.body;
+    try{
+        const user = await User.findOne({email});
+        if(!user){
+            return res.status(400).json({errors: ['User with this email does not exist']});
+        }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if(!isPasswordValid){
+            return res.status(400).json({errors: ['Invalid password']});
+        }
+        res.status(200).json({message: 'Login successful', user: {name: user.name, email: user.email, userphoto: user.userphoto}});
+    }
+    catch(err){
+        res.status(500).json({message: 'Something went wrong'});
+    }
 })
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
