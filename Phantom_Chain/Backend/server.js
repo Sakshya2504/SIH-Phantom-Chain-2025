@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors';
 import mongoose from 'mongoose';
 import { User } from './models/userSchema.js';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 const app = express();
 const port = 3000;
@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json()); 
 
 try{
-    await mongoose.connect('mongodb://localhost:27017/phantomchain/users');
+    await mongoose.connect('mongodb://localhost:27017/phantomchain');
     console.log("Connected to MongoDB");
 }
 catch(error){
