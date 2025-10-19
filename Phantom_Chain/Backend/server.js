@@ -26,7 +26,7 @@ app.get('/api/health', (req, res) => {
 
 //Signup Route
 app.post('/api/signup', async(req,res)=>{
-    const {name, email , password, userphoto} = req.body;
+    const {name, email , password} = req.body;
     if (password.length < 6 || password.length > 10) {
         return res.status(400).json({ errors: ['Password must be between 6 and 10 characters long'] });
     }
@@ -42,7 +42,7 @@ app.post('/api/signup', async(req,res)=>{
         const newUser = new User({name,email,hashedPassword,userphoto});
         await newUser.save();
         res.status(201).json({message: 'User created successfully', user:
-            {name: newUser.name , email: newUser.email , password: hashedPassword , userphoto: newUser.userphoto}
+            {name: newUser.name , email: newUser.email , password: hashedPassword }
         });
     }
     catch (err) {
@@ -66,7 +66,7 @@ app.post('/api/login', async(req,res)=>{
         if(!isPasswordValid){
             return res.status(400).json({errors: ['Invalid password']});
         }
-        res.status(200).json({message: 'Login successful', user: {name: user.name, email: user.email, userphoto: user.userphoto}});
+        res.status(200).json({message: 'Login successful', user: {name: user.name, email: user.email}});
     }
     catch(err){
         res.status(500).json({message: 'Something went wrong'});
