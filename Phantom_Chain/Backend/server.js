@@ -1,77 +1,95 @@
-import express from 'express'
-import cors from 'cors';
-import mongoose from 'mongoose';
-import { User } from './models/userSchema.js';
-import bcrypt from 'bcrypt';
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import { User } from "./models/userSchema.js";
+import bcrypt from "bcrypt";
 
 const app = express();
 const port = 3000;
 
 app.use(cors());
-app.use(express.json()); 
+app.use(express.json());
 
-try{
-    await mongoose.connect('mongodb://localhost:27017/phantomchain');
-    console.log("Connected to MongoDB");
-}
-catch(error){
-    console.log("Error connecting to MongoDB:", error);
-    alert("Error connecting to MongoDB:", error);
+try {
+    await mongoose.connect("mongodb://localhost:27017/phantomchain");
+    console.log("✅ Connected to MongoDB");
+} catch (error) {
+    console.error("❌ Error connecting to MongoDB:", error);
 }
 
-app.get('/api/health', (req, res) => {
-    res.send('Hello World!');
+app.get("/api/health", (req, res) => {
+    res.send("Server is running!");
 });
 
+// ✅ Signup Route
+app.post("/api/signup", async (req, res) => {
+    const { name, email, password } = req.body;
 
-//Signup Route
-app.post('/api/signup', async(req,res)=>{
-    const {name, email , password} = req.body;
-    if (password.length < 6 || password.length > 10) {
-        return res.status(400).json({ errors: ['Password must be between 6 and 10 characters long'] });
-    }
-
-    try{
-        const existingUser = await User.findOne({email});
-        if(existingUser){
-            return res.status(400).json({errors: ['User with email already exists']});
+    try {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res
+                .status(400)
+                .json({ errors: ["User with this email already exists"] });
         }
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hashedPassword(password, saltRounds);
 
-        const newUser = new User({name,email,hashedPassword,userphoto});
-        await newUser.save();
-        res.status(201).json({message: 'User created successfully', user:
-            {name: newUser.name , email: newUser.email , password: hashedPassword }
+        if (password.length < 6 || password.length > 10) {
+            return res.status(400).json({
+                errors: ["Password must be between 6 and 10 characters long"],
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = new User({
+            name,
+            email,
+            password: hashedPassword,
         });
-    }
-    catch (err) {
-        if (err.name === 'ValidationError') {
-            const messages = Object.values(err.errors).map(e => e.message);
+
+        await newUser.save();
+        res.status(201).json({
+            message: "User created successfully",
+            user: { name: newUser.name, email: newUser.email },
+        });
+    } catch (err) {
+        console.error("Signup error:", err);
+        if (err.name === "ValidationError") {
+            const messages = Object.values(err.errors).map((e) => e.message);
             return res.status(400).json({ errors: messages });
         }
-        res.status(500).json({ message: 'Something went wrong' });
+        res.status(500).json({ message: "Something went wrong" });
     }
-})
+});
 
-//login Route
-app.post('/api/login', async(req,res)=>{
-    const {email, password} = req.body;
-    try{
-        const user = await User.findOne({email});
-        if(!user){
-            return res.status(400).json({errors: ['User with this email does not exist']});
+// ✅ Login Route
+app.post("/api/login", async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res
+                .status(400)
+                .json({ errors: ["User with this email does not exist"] });
         }
+
         const isPasswordValid = await bcrypt.compare(password, user.password);
-        if(!isPasswordValid){
-            return res.status(400).json({errors: ['Invalid password']});
+        if (!isPasswordValid) {
+            return res.status(400).json({ errors: ["Invalid password"] });
         }
-        res.status(200).json({message: 'Login successful', user: {name: user.name, email: user.email}});
+
+        res
+            .status(200)
+            .json({
+                message: "Login successful",
+                user: { name: user.name, email: user.email },
+            });
+    } catch (err) {
+        console.error("Login error:", err);
+        res.status(500).json({ message: "Something went wrong" });
     }
-    catch(err){
-        res.status(500).json({message: 'Something went wrong'});
-    }
-})
+});
+
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+    console.log(`🚀 Server running on port ${port}`);
 });

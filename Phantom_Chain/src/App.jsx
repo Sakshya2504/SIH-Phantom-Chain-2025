@@ -1,13 +1,36 @@
-import { useState } from 'react';
-import Login from './components/Login';
-import LandingPage from './components/LandingPage';
-import Dashboard from './components/Dashboard';
-import FundDetails from './components/FundDetails';
+import { useState } from "react";
+import Signup from "./components/Signup";
+import Login from "./components/Login";
+import LandingPage from "./components/LandingPage";
+import Dashboard from "./components/Dashboard";
+import FundDetails from "./components/FundDetails";
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login');
+  const [currentPage, setCurrentPage] = useState("login");
   const [selectedFund, setSelectedFund] = useState(null);
+  const [user, setUser] = useState(null);
 
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setCurrentPage("welcome");
+  };
+
+  const handleSignup = () => {
+    setCurrentPage("login");
+  };
+
+  const handleViewFund = (fund) => {
+    setSelectedFund(fund);
+    setCurrentPage("fund-details");
+  };
+
+  const handleBackToDashboard = () => {
+    setCurrentPage("dashboard");
+    setSelectedFund(null);
+  };
+
+  // (mock data same as before)
+  // ... your fundsData and portfolioData ...
   // Mock data for funds
   const fundsData = [
     {
@@ -66,36 +89,32 @@ function App() {
     returns: '22.84%'
   };
 
-  const handleLogin = () => {
-    setCurrentPage('welcome');
-  };
-
-  const handleViewFund = (fund) => {
-    setSelectedFund(fund);
-    setCurrentPage('fund-details');
-  };
-
-  const handleBackToDashboard = () => {
-    setCurrentPage('dashboard');
-    setSelectedFund(null);
-  };
-
   return (
     <div className="min-h-screen bg-dark-300">
-      {currentPage === 'login' && <Login onLogin={handleLogin} />}
-      {currentPage === 'welcome' && <LandingPage onStart={() => setCurrentPage('dashboard')} />}
-      {currentPage === 'dashboard' && (
-        <Dashboard 
+      {currentPage === "login" && (
+        <Login
+          onLogin={handleLogin}
+          onSwitchToSignup={() => setCurrentPage("signup")}
+        />
+      )}
+      {currentPage === "signup" && (
+        <Signup
+          onSignup={handleSignup}
+          onSwitchToLogin={() => setCurrentPage("login")}
+        />
+      )}
+      {currentPage === "welcome" && (
+        <LandingPage onStart={() => setCurrentPage("dashboard")} />
+      )}
+      {currentPage === "dashboard" && (
+        <Dashboard
           fundsData={fundsData}
           portfolioData={portfolioData}
           onViewFund={handleViewFund}
         />
       )}
-      {currentPage === 'fund-details' && selectedFund && (
-        <FundDetails 
-          fund={selectedFund}
-          onBack={handleBackToDashboard}
-        />
+      {currentPage === "fund-details" && selectedFund && (
+        <FundDetails fund={selectedFund} onBack={handleBackToDashboard} />
       )}
     </div>
   );
