@@ -20,8 +20,15 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: true,
-           
-
+        },
+        phone: {
+            type: String,
+            required: true,
+            match: [/^[0-9]{10}$/, "Phone number must be 10 digits"],
+        },
+        photo: {
+            type: String, // store image URL or base64 string
+            default: "", // can be empty initially
         },
     },
     { timestamps: true }

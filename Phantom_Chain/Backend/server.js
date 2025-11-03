@@ -17,13 +17,70 @@ try {
     console.error("❌ Error connecting to MongoDB:", error);
 }
 
+// --- Email Transporter Setup (Gmail SMTP) ---
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: "youremail@gmail.com",       // your Gmail address
+        pass: "your-app-password",         // use Gmail App Password (not your real password)
+    },
+});
+
+// temporary in-memory store for OTPs
+const otpStore = new Map(); // key: email, value: { otp, expiresAt }
+
+
 app.get("/api/health", (req, res) => {
     res.send("Server is running!");
 });
 
-// ✅ Signup Route
+//Send OTP Route
+app.post("/api/send-otp", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    otpStore.set(email, { otp, expiresAt });
+
+    const mailOptions = {
+        from: '"PhantomChain" <youremail@gmail.com>',
+        to: email,
+        subject: "Your OTP for Signup",
+        text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        res.json({ success: true, message: "OTP sent successfully" });
+    } catch (error) {
+        console.error("Email error:", error);
+        res.status(500).json({ success: false, message: "Failed to send OTP" });
+    }
+});
+
+//Verify OTP Route
+app.post("/api/verify-otp", (req, res) => {
+    const { email, otp } = req.body;
+    if (!email || !otp)
+        return res.status(400).json({ error: "Email and OTP are required" });
+
+    const record = otpStore.get(email);
+    if (!record) return res.status(400).json({ error: "OTP not found" });
+    if (Date.now() > record.expiresAt)
+        return res.status(400).json({ error: "OTP expired" });
+    if (record.otp !== otp)
+        return res.status(400).json({ error: "Invalid OTP" });
+
+    otpStore.delete(email); // remove after successful verification
+    res.json({ success: true, message: "OTP verified successfully" });
+});
+
+
+//Signup Route
 app.post("/api/signup", async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone, photo } = req.body;
 
     try {
         const existingUser = await User.findOne({ email });
@@ -39,18 +96,32 @@ app.post("/api/signup", async (req, res) => {
             });
         }
 
+        if (!/^[0-9]{10}$/.test(phone)) {
+            return res
+                .status(400)
+                .json({ errors: ["Phone number must be 10 digits"] });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({
             name,
             email,
             password: hashedPassword,
+            phone,
+            photo,
         });
 
         await newUser.save();
+
         res.status(201).json({
             message: "User created successfully",
-            user: { name: newUser.name, email: newUser.email },
+            user: {
+                name: newUser.name,
+                email: newUser.email,
+                phone: newUser.phone,
+                photo: newUser.photo,
+            },
         });
     } catch (err) {
         console.error("Signup error:", err);
@@ -62,7 +133,8 @@ app.post("/api/signup", async (req, res) => {
     }
 });
 
-// ✅ Login Route
+
+//Login Route
 app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -91,5 +163,5 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
+    console.log(`Server running on port ${port}`);
 });
